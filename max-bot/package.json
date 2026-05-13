@@ -1,0 +1,20 @@
+{
+  "name": "college-max-bot",
+  "version": "1.0.0",
+  "description": "Max чат-бот для абитуриентов колледжа",
+  "main": "dist/bot.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/bot.js",
+    "dev": "ts-node src/bot.ts"
+  },
+  "dependencies": {
+    "@maxhub/max-bot-api": "latest",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "ts-node": "^10.9.0"
+  }
+}
