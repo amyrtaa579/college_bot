@@ -56,7 +56,7 @@ class ApiClient {
     if (!response.ok) {
       throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
   // О колледже

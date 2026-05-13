@@ -5,12 +5,9 @@ import {
   mainMenuKeyboard,
   admissionMenuKeyboard,
   paginationRow,
-  backAndMenu,
 } from './keyboards';
 import {
   getSession,
-  pushState,
-  popState,
   clearStack,
 } from './navigation';
 
@@ -25,35 +22,28 @@ function formatPage(page: any): string {
 // ========== КОМАНДА /start ==========
 
 bot.command('start', async (ctx) => {
-  const userId = String(ctx.user?.user_id || 'unknown');
+  const userId = String((ctx as any).user?.user_id || 'unknown');
   clearStack(userId);
 
-  await ctx.reply('Добро пожаловать в чат-бот Колледжа! Выберите раздел:', {
+  await (ctx as any).reply('Добро пожаловать в чат-бот Колледжа! Выберите раздел:', {
     keyboard: mainMenuKeyboard(),
   });
 });
 
-// ========== ОБРАБОТЧИК CALLBACK'ОВ ==========
+// ========== ОБРАБОТЧИК MESSAGE_CALLBACK ==========
 
-bot.on('callback', async (ctx) => {
-  const userId = String(ctx.user?.user_id || 'unknown');
-  const data = ctx.callback?.data || '';
+bot.on('message_callback', async (ctx) => {
+  const userId = String((ctx as any).user?.user_id || 'unknown');
+  const callback = (ctx as any).callback || {};
+  const data = callback.payload || '';
   const session = getSession(userId);
 
   // Главное меню
   if (data === 'main_menu') {
     clearStack(userId);
-    await ctx.editMessage('Добро пожаловать в чат-бот Колледжа! Выберите раздел:', {
+    await (ctx as any).editMessage('Добро пожаловать в чат-бот Колледжа! Выберите раздел:', {
       keyboard: mainMenuKeyboard(),
     });
-    return;
-  }
-
-  // Назад
-  if (data === 'back') {
-    popState(userId);
-    // Редиректим на обработку текущего раздела
-    await handleSection(ctx, userId, session.currentSection, session.context);
     return;
   }
 
@@ -232,30 +222,6 @@ async function handleSection(ctx: any, userId: string, section: string, context:
           return;
         }
 
-        // ===== ПРИЁМНАЯ КОМИССИЯ: Важные даты =====
-        if (section === 'admission_dates') {
-          const result = await apiClient.getAdmissionDates(page);
-          session.context.totalPages = result.total_pages;
-          
-          const lines = ['<b>Важные даты:</b>\n'];
-          result.items.forEach((d, i) => {
-            lines.push(`${(page - 1) * config.pageSize + i + 1}. ${d.short_title}`);
-          });
-          
-          const keyboard: any[] = result.items.map((d, i) => [{
-            text: `${(page - 1) * config.pageSize + i + 1}`,
-            callback_data: `admission_date_${d.id}`,
-          }]);
-          const pagination = paginationRow(page, result.total_pages);
-          if (pagination.length > 0) keyboard.push(pagination);
-          keyboard.push([
-            { text: '🔙 Назад', callback_data: 'admission' },
-            { text: '🏠 Главное меню', callback_data: 'main_menu' },
-          ]);
-          await ctx.editMessage(lines.join('\n'), { keyboard });
-          return;
-        }
-
         // ===== ПРИЁМНАЯ КОМИССИЯ: FAQ =====
         if (section === 'admission_faq') {
           const result = await apiClient.getFaqQuestions(null, true, page);
@@ -353,6 +319,30 @@ async function handleSection(ctx: any, userId: string, section: string, context:
             { text: '🏠 Главное меню', callback_data: 'main_menu' },
           ]);
           await ctx.editMessage(formatPage(result), { keyboard });
+          return;
+        }
+
+        // ===== ПРИЁМНАЯ КОМИССИЯ: Важные даты =====
+        if (section === 'admission_dates') {
+          const result = await apiClient.getAdmissionDates(page);
+          session.context.totalPages = result.total_pages;
+          
+          const lines = ['<b>Важные даты:</b>\n'];
+          result.items.forEach((d, i) => {
+            lines.push(`${(page - 1) * config.pageSize + i + 1}. ${d.short_title}`);
+          });
+          
+          const keyboard: any[] = result.items.map((d, i) => [{
+            text: `${(page - 1) * config.pageSize + i + 1}`,
+            callback_data: `admission_date_${d.id}`,
+          }]);
+          const pagination = paginationRow(page, result.total_pages);
+          if (pagination.length > 0) keyboard.push(pagination);
+          keyboard.push([
+            { text: '🔙 Назад', callback_data: 'admission' },
+            { text: '🏠 Главное меню', callback_data: 'main_menu' },
+          ]);
+          await ctx.editMessage(lines.join('\n'), { keyboard });
           return;
         }
 
